@@ -107,7 +107,7 @@ proc listen(server: ServerContext) {.raises: [HyperxConnError].} =
     server.sock.setSockOpt(OptReuseAddr, true)
     server.sock.setSockOpt(OptReusePort, true)
     server.sock.setSockOpt(OptNoDelay, true, level = IPPROTO_TCP.cint)
-    server.sock.bindAddr server.port
+    server.sock.bindAddr(server.port, server.hostname)
     server.sock.listen()
 
 proc recvClientNaked(server: ServerContext): Future[ClientContext] {.async.} =
@@ -339,3 +339,11 @@ proc run*(
     for i in 0 .. threads.len-1:
       joinThread(threads[i])
   doAssert ctx.callback != nil  # keep ctx alive
+
+when isMainModule and defined(hyperxTest):
+  let server = newServer("127.0.0.1", Port(8783), ssl = false)
+  server.listen()
+  doAssert server.sock.hostname == "127.0.0.1"
+  doAssert server.sock.port == Port(8783)
+  server.close()
+  echo "ok"
